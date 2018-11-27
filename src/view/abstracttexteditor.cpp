@@ -615,7 +615,7 @@ void AbstractTextEditor::onKeyReleased(const Key &key)
         break;
 
     case Key::ActionCommand:
-        invokeAction(text, QKeySequence::fromString(key.commandSequence()));
+        sendKeySequence(text, QKeySequence::fromString(key.commandSequence()));
 
     case Key::ActionLeftLayout:
         Q_EMIT leftLayoutSelected();
@@ -1060,6 +1060,90 @@ void AbstractTextEditor::onKeyboardStateChanged(QString state) {
     Q_D(AbstractTextEditor);
 
     d->keyboardState = state;
+}
+
+void AbstractTextEditor::sendKeySequence(const QString &action, const QKeySequence &sequence) {
+	
+    // if (debug) qDebug() << InputContextName << __PRETTY_FUNCTION__ << "action" << action;
+
+    // NOTE: currently not trying to trigger action directly
+    static const Qt::KeyboardModifiers AllModifiers = Qt::ShiftModifier | Qt::ControlModifier | Qt::AltModifier
+            | Qt::MetaModifier | Qt::KeypadModifier;
+    
+    QKeySequence actionSequence;
+    
+		if (action == "Copy") {
+			actionSequence = QKeySequence::Copy;
+		}
+		else if (action == "Paste") {
+			actionSequence = QKeySequence::Paste;
+		}
+		else if (action == "Cut") {
+			actionSequence = QKeySequence::Cut;
+		}
+		else if (action == "Tab") {
+			actionSequence = QKeySequence::AddTab;
+		}
+		else if (action == "Redo") {
+			actionSequence = QKeySequence::Redo;
+		}
+		else if (action == "Undo") {
+			actionSequence = QKeySequence::Undo;
+		}
+		else if (action == "SelectAll") {
+			actionSequence = QKeySequence::SelectAll;
+		}
+		else if (action == "SelectNextChar") {
+			actionSequence = QKeySequence::SelectNextChar;
+		}
+		else if (action == "SelectPreviousChar") {
+			actionSequence = QKeySequence::SelectPreviousChar;
+		}
+		else if (action == "SelectNextLine") {
+			actionSequence = QKeySequence::SelectNextLine;
+		}
+		else if (action == "SelectPreviousLine") {
+			actionSequence = QKeySequence::SelectPreviousLine;
+		}
+		else if (action == "SelectPreviousWord") {
+			actionSequence = QKeySequence::SelectPreviousWord;
+		}
+		else if (action == "SelectNextWord") {
+			actionSequence = QKeySequence::SelectNextWord;
+		}
+		else if (action == "SelectStartOfLine") {
+			actionSequence = QKeySequence::SelectStartOfLine;
+		}
+		else if (action == "SelectEndOfLine") {
+			actionSequence = QKeySequence::SelectEndOfLine;
+		}
+		else if (action == "MoveToPreviousWord") {
+			actionSequence = QKeySequence::MoveToPreviousWord;
+		}
+		else if (action == "MoveToNextWord") {
+			actionSequence = QKeySequence::MoveToNextWord;
+		}
+		else if (action == "MoveToStartOfLine") {
+			actionSequence = QKeySequence::MoveToStartOfLine;
+		}
+		else if (action == "MoveToEndOfLine") {
+			actionSequence = QKeySequence::MoveToEndOfLine;
+		}else{
+			actionSequence = QKeySequence::UnknownKey;
+		}
+	
+	if(actionSequence == QKeySequence::UnknownKey)
+	actionSequence = sequence;
+
+    for (int i = 0; i < actionSequence.count(); i++) {
+        const int key = actionSequence[i] & ~AllModifiers;
+        const int modifiers = actionSequence[i] & AllModifiers;
+        QString text("");
+        if (modifiers == Qt::NoModifier || modifiers == Qt::ShiftModifier) {
+            text = QString(key);
+        }
+        sendKeyPressAndReleaseEvents(key, static_cast<Qt::KeyboardModifiers>(modifiers), text);
+	}
 }
 
 void AbstractTextEditor::sendKeyPressAndReleaseEvents(

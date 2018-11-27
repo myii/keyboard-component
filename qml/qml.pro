@@ -23,12 +23,14 @@ OTHER_FILES += \
     maliit-keyboard.qml \
     maliit-keyboard-extended.qml \
     maliit-magnifier.qml \
+    FloatingActions.qml \
     Keyboard.qml \
     KeyboardContainer.qml \
     Popper.qml \
     WordRibbon.qml \
     keys/key_constants.js \
     keys/ActionKey.qml \
+    keys/AdvancedActionKey.qml \
     keys/CharKey.qml \
     keys/BackspaceKey.qml \
     keys/DropShadow.qml \

@@ -21,6 +21,9 @@ import "key_constants.js" as UI
 import "languages.js" as Languages
 
 ActionKey {
+
+	property bool isSwipeImmediate: true //maliit_input_method.swipeTrigger
+	
     label: " ";
     shifted: " ";
 
@@ -31,7 +34,7 @@ ActionKey {
     switchBackFromSymbols: true
 
     overridePressArea: true
-
+    
     Label {
         anchors.centerIn: parent
         anchors.verticalCenterOffset: -parent.rowMargin / 2 - units.gu(0.15)
@@ -42,13 +45,17 @@ ActionKey {
         text: Languages.languageIdToName(maliit_input_method.activeLanguage)
         horizontalAlignment: Text.AlignHCenter
         visible: !panel.hideKeyLabels
+        color: UI.fontColor
     }
 
     MouseArea {
         id: swipeArea
         anchors.fill: parent
+        
+        //~ property bool dblClick: false
 
         onPressAndHold: {
+			fullScreenItem.timerSwipe.stop()
             fullScreenItem.prevSwipePositionX = mouseX
             fullScreenItem.prevSwipePositionY = mouseY
             fullScreenItem.cursorSwipe = true
@@ -76,6 +83,48 @@ ActionKey {
                 fullScreenItem.processSwipe(mouseX, mouseY);
             }
         }
+        
+        //~ onDoubleClicked: {
+			//~ dblClick = true
+			//~ fullScreenItem.selectionMode = true
+			//~ fullScreenItem.timerSwipe.restart()
+        //~ }
     }
+    
+    SwipeArea {
+		 id: horizontalSwipe
+		 
+	    anchors.fill: parent
+	    visible: isSwipeImmediate
+	    direction: SwipeArea.Horizontal
+	    
+	    onDraggingChanged: {
+			if (isSwipeImmediate && dragging) {
+			    fullScreenItem.prevSwipePositionX = swipeArea.mouseX
+				fullScreenItem.prevSwipePositionY = swipeArea.mouseY
+		        fullScreenItem.cursorSwipe = true
+		        spaceKey.currentlyPressed = false
+		        //fullScreenItem.timerSwipe.stop()
+			}
+	    }
+	
+	    onTouchPositionChanged: {
+			if (isSwipeImmediate && fullScreenItem.cursorSwipe) {
+			   fullScreenItem.processSwipe(touchPosition.x, touchPosition.y);
+			}
+	    }
+	
+	    onPressedChanged: {
+			//~ if (!pressed && !dragging) {
+			if (!pressed) {
+				//fullScreenItem.selectionMode = false
+				fullScreenItem.timerSwipe.restart()
+			}
+			else{
+				spaceKey.currentlyPressed = true
+	            fullScreenItem.timerSwipe.stop()
+			}
+	    }
+	}
 
 }
