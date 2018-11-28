@@ -44,8 +44,7 @@ Item {
     readonly property bool tablet: landscape ? width >= units.gu(90) : height >= units.gu(90)
 
     property bool cursorSwipe: false
-	property bool selectionMode: false
-	//~ property alias keypad: keypad
+    property bool selectionMode: false
     property int prevSwipePositionX
     property int prevSwipePositionY
     property int cursorSwipeDuration: 1000//400
@@ -161,7 +160,7 @@ Item {
 
                     height: canvas.wordribbon_visible ? (fullScreenItem.tablet ? units.gu(UI.tabletWordribbonHeight)
                                                                                : units.gu(UI.phoneWordribbonHeight))
-                                                      : toolbar.visible ? toolbar.height : 0
+                                                      : /*toolbar.visible ? toolbar.height :*/ 0
                     onHeightChanged: fullScreenItem.reportKeyboardVisibleRect();
                 }
                 //TODO: Sets the theme for all UITK components used in the OSK. Replace those components to remove the need for this.
@@ -172,44 +171,13 @@ Item {
                     theme.name: fullScreenItem.theme.toolkitTheme
                 }
                 
-                Toolbar {
-					id: toolbar
-					visible: cursorSwipe
-					height: fullScreenItem.tablet ? units.gu(UI.tabletWordribbonHeight) : units.gu(UI.phoneWordribbonHeight)//units.gu(5)
-					
-			        anchors {
-			            left: parent.left
-			            right: parent.right
-			            //~ top: parent.top
-			            bottom: keyboardComp.top
-			        }
-			        
-			        function runCommand(command){
-						event_handler.onKeyReleased(command, "command")
-						fullScreenItem.timerSwipe.restart()
-					}
-			        
-			        // Disable clicking at the bottom
-			        MouseArea{
-						anchors.fill: parent
-						z: -1
-					}
-			        
-			        //~ theme.name: "Ubuntu.Components.Themes.SuruDark" 
-			        
-			        trailingActionBar.actions: [
-				        Action { iconName: "edit-paste"; onTriggered: toolbar.runCommand("Paste"); },
-			            Action { iconName: "edit-copy"; enabled: input_method.hasSelection; onTriggered: toolbar.runCommand("Copy"); },
-			            Action { iconName: "edit-cut"; enabled: input_method.hasSelection; onTriggered: toolbar.runCommand("Cut"); }
-			        ]
-			        leadingActionBar.numberOfSlots: 4
-			        leadingActionBar.actions: [
-				        Action { iconName: "keyboard-tab"; onTriggered: toolbar.runCommand("tab"/*String.fromCharCode(9)*/);},
-				        Action { iconName: "edit-select-all"; onTriggered: toolbar.runCommand("SelectAll"); },
-				        Action { iconName: "redo"; onTriggered: toolbar.runCommand("Redo");},
-				        Action { iconName: "undo"; onTriggered: toolbar.runCommand("Undo");}
-			        ]
-			    }
+                AdvancedToolbar{
+                    id: toolbar
+                    z: 1
+                    visible: cursorSwipe
+                    height: fullScreenItem.tablet ? units.gu(UI.tabletWordribbonHeight) : units.gu(UI.phoneWordribbonHeight)
+                    state: wordRibbon.visible? "wordribbon" : "top"
+                }
 
                 Item {
                     id: keyboardComp
@@ -233,7 +201,7 @@ Item {
                         id: borderTop
                         width: parent.width
                         anchors.top: parent.top.bottom
-                        height: wordRibbon.visible || toolbar.visible ? 0 : units.gu(UI.top_margin)
+                        height: wordRibbon.visible /*|| toolbar.visible*/ ? 0 : units.gu(UI.top_margin)
                     }
 
                     KeyboardContainer {
@@ -336,22 +304,26 @@ Item {
         }
         
         FloatingActions{
-			id: floatingActions
-			
-			z: 1
-			visible: fullScreenItem.cursorSwipe && !cursorSwipeArea.pressed
-		}
+            id: floatingActions
+            
+            z: 1
+            visible: fullScreenItem.cursorSwipe && !cursorSwipeArea.pressed
+        }
 
         MouseArea {
             id: cursorSwipeArea
+            
+            property point firstPress
+            property point lastRelease
+            
             anchors.fill: parent
             anchors.topMargin: toolbar.height
             //~ anchors{
-				//~ left: parent.left
-				//~ right: parent.right
-				//~ bottom: parent.bottom
-				//~ top: toolbar.bottom
-			//~ }
+                //~ left: parent.left
+                //~ right: parent.right
+                //~ bottom: parent.bottom
+                //~ top: toolbar.bottom
+            //~ }
             enabled: cursorSwipe
 
             Rectangle {
@@ -366,35 +338,68 @@ Item {
             }
 
             onPressed: {
+                test.text = test.text + "\n" + "pressed"
                 prevSwipePositionX = mouseX
                 prevSwipePositionY = mouseY
                 fullScreenItem.timerSwipe.stop()
                 selectionTimer.stop()
+                if(firstPress === Qt.point(0,0)){
+                    //~ test.text = test.text + "\n" + "firstpressed: " + mouse.x + " - " + mouse.y
+                    firstPress = Qt.point(mouse.x, mouse.y)
+                }
             }
 
             onReleased: {
-				if(!fullScreenItem.selectionMode){
-	                fullScreenItem.timerSwipe.restart()
-				}else{
-					swipeTimer.stop()
-					
-					if(!input_method.hasSelection){
-						selectWord()
-						fullScreenItem.selectionMode = false
-						swipeTimer.restart()
-					}else{
-						selectionTimer.restart()
-					}
-				}
+                if(!fullScreenItem.selectionMode){
+                    fullScreenItem.timerSwipe.restart()
+                    firstPress = Qt.point(0,0)
+                }else{
+                    swipeTimer.stop()
+                    
+                    if(!input_method.hasSelection){
+                        selectWord()
+                        fullScreenItem.selectionMode = false
+                        swipeTimer.restart()
+                    }else{
+                        selectionTimer.restart()
+                    }
+                }
+
+                //~ test.text = test.text + "\n" + "lastRelease: " + mouse.x + " - " + mouse.y
+                lastRelease = Qt.point(mouse.x, mouse.y)
             }
             
             onDoubleClicked: {
-				selectionMode = true
-				swipeTimer.stop()
+                //~ test.text = test.text + "\n" + "doubleclick: " + mouse.x + " - " + mouse.y
+                var xDiff = Math.abs(firstPress.x - mouse.x)
+                var yDiff = Math.abs(firstPress.y - mouse.y)
+                var xReleaseDiff = Math.abs(lastRelease.x - firstPress.x)
+                var yReleaseDiff = Math.abs(lastRelease.y - firstPress.y)
+                
+                //~ test.text = test.text + "\n" + "diff: " + xDiff + " - " + yDiff
+                //~ test.text = test.text + "\n" + "diff2: " + xReleaseDiff + " - " + yReleaseDiff
+                var hate = units.gu(10)
+                var hate2 = units.gu(2)
+                //~ test.text = test.text + "\n" + "putek: " + hate + " - " + hate2
+                //~ if(xDiff < hate && yDiff < hate && xReleaseDiff < hate2 && yReleaseDiff < hate2){
+                if(xReleaseDiff < hate2 && yReleaseDiff < hate2){
+                    selectionMode = true
+                    swipeTimer.stop()
+                }
+                firstPress = Qt.point(0,0)
+                //~ lastRelease = Qt.point(0,0)
+                //~ test.text = ""
+            }
+            
+            Label{
+                id: test
+                visible: false
             }
         }
 
     } // canvas
+    
+    onCursorSwipeChanged: test.text = ""
 
     Timer {
         id: swipeTimer
@@ -415,20 +420,20 @@ Item {
     }
     
     function exitSelectionMode(){
-		selectionMode = false
-		swipeTimer.restart()
-	}
+        selectionMode = false
+        swipeTimer.restart()
+    }
     
     function exitSwipeMode(){
-		fullScreenItem.cursorSwipe = false
-		// We only enable autocaps after cursor movement has stopped
-		if (keypad.delayedAutoCaps) {
-			keypad.activeKeypadState = "SHIFTED"
-			keypad.delayedAutoCaps = false
-		} else {
-			keypad.activeKeypadState = "NORMAL"
-		}
-	}
+        fullScreenItem.cursorSwipe = false
+        // We only enable autocaps after cursor movement has stopped
+        if (keypad.delayedAutoCaps) {
+            keypad.activeKeypadState = "SHIFTED"
+            keypad.delayedAutoCaps = false
+        } else {
+            keypad.activeKeypadState = "NORMAL"
+        }
+    }
 
     function reportKeyboardVisibleRect() {
 
@@ -472,52 +477,52 @@ Item {
     function sendEndKey() {
         event_handler.onKeyReleased("", "end");
     }
-	function selectLeft(){
-		event_handler.onKeyReleased("SelectPreviousChar", "command");
+    function selectLeft(){
+        event_handler.onKeyReleased("SelectPreviousChar", "command");
     }
     function selectRight(){
-		event_handler.onKeyReleased("SelectNextChar", "command");
+        event_handler.onKeyReleased("SelectNextChar", "command");
     }
     function selectUp(){
-		event_handler.onKeyReleased("SelectPreviousLine", "command");
+        event_handler.onKeyReleased("SelectPreviousLine", "command");
     }
     function selectDown(){
-		event_handler.onKeyReleased("SelectNextLine", "command");
+        event_handler.onKeyReleased("SelectNextLine", "command");
     }
     function selectWord(){
-	    event_handler.onKeyReleased("MoveToPreviousWord", "command");
-		event_handler.onKeyReleased("SelectNextWord", "command");
+        event_handler.onKeyReleased("MoveToPreviousWord", "command");
+        event_handler.onKeyReleased("SelectNextWord", "command");
     }
 
     function processSwipe(positionX, positionY) {
         if (positionX < prevSwipePositionX - units.gu(1) && input_method.surroundingLeft != "") {
             if(selectionMode){
-				selectLeft();
-		    }else{
-            	sendLeftKey();
-		    }
+                selectLeft();
+            }else{
+                sendLeftKey();
+            }
             prevSwipePositionX = positionX
         } else if (positionX > prevSwipePositionX + units.gu(1) && input_method.surroundingRight != "") {
             if(selectionMode){
-				selectRight();
-		    }else{
-            	sendRightKey();
-		    }
+                selectRight();
+            }else{
+                sendRightKey();
+            }
             prevSwipePositionX = positionX
         }
         if (positionY < prevSwipePositionY - units.gu(4)) {
             if(selectionMode){
-				selectUp();
-		    }else{
-            	sendUpKey();
-		    }
+                selectUp();
+            }else{
+                sendUpKey();
+            }
             prevSwipePositionY = positionY
         } else if (positionY > prevSwipePositionY + units.gu(4)) {
             if(selectionMode){
-				selectDown();
-		    }else{
-            	sendDownKey();
-		    }
+                selectDown();
+            }else{
+                sendDownKey();
+            }
             prevSwipePositionY = positionY
         }
     }
