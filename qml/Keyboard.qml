@@ -47,7 +47,7 @@ Item {
     property bool selectionMode: false
     property int prevSwipePositionX
     property int prevSwipePositionY
-    property int cursorSwipeDuration: 1000//400
+    property int cursorSwipeDuration: 1000
     property var timerSwipe: swipeTimer
     property var theme: Theme.defaultTheme
 

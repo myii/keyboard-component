@@ -116,7 +116,7 @@ ActionKey {
 	
 	    onPressedChanged: {
 			//~ if (!pressed && !dragging) {
-			if (!pressed) {
+			if (!pressed && fullScreenItem.cursorSwipe) {
 				//fullScreenItem.selectionMode = false
 				fullScreenItem.timerSwipe.restart()
 			}
